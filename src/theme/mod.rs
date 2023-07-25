@@ -48,13 +48,9 @@ impl Theme {
     fn match_size(&self, size: u16, scale: u16) -> impl Iterator<Item = PathBuf> + '_ {
         let dirs = self.get_all_directories();
 
-        let paths = dirs
-            .filter(move |directory| directory.match_size(size, scale))
+        dirs.filter(move |directory| directory.match_size(size, scale))
             .map(|dir| dir.name)
-            .map(|dir| self.path().join(dir));
-        let p = paths.collect::<Vec<PathBuf>>();
-        //dbg!(&p);
-        p.into_iter()
+            .map(|dir| self.path().join(dir))
     }
 
     fn try_get_icon_closest_size(

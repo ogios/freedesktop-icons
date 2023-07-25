@@ -22,7 +22,7 @@ fn icon_theme_base_paths() -> Vec<PathBuf> {
         })
         .unwrap_or_default();
     data_dirs.push(home_icon_dir);
-    dbg!(data_dirs.into_iter().filter(|p| p.exists()).collect())
+    data_dirs.into_iter().filter(|p| p.exists()).collect()
 }
 
 #[derive(Debug)]
@@ -77,11 +77,7 @@ impl ThemePath {
                 .unwrap_or(128);
 
             for path in paths.clone() {
-                index.set_to(
-                    Some(dbg!(path)),
-                    "Size".to_owned(),
-                    dbg!(size_num.to_string()),
-                )
+                index.set_to(Some(path), "Size".to_owned(), size_num.to_string())
             }
 
             app_dirs.append(&mut paths);
@@ -90,7 +86,7 @@ impl ThemePath {
         index.set_to(
             Some("Icon Theme"),
             "Directories".to_owned(),
-            dbg!(app_dirs.join(",").to_owned()),
+            app_dirs.join(",").to_owned(),
         );
 
         index
