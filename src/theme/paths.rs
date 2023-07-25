@@ -2,8 +2,10 @@ use crate::theme;
 use crate::theme::error::ThemeError::ThemeIndexNotFound;
 use dirs::home_dir;
 use ini::Ini;
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
+use std::str::FromStr;
 use walkdir::WalkDir;
 use xdg::BaseDirectories;
 
@@ -12,15 +14,20 @@ pub(crate) static BASE_PATHS: Lazy<Vec<PathBuf>> = Lazy::new(icon_theme_base_pat
 /// Look in $HOME/.icons (for backwards compatibility), in $XDG_DATA_DIRS/icons and in /usr/share/pixmaps (in that order).
 /// Paths that are not found are filtered out.
 fn icon_theme_base_paths() -> Vec<PathBuf> {
-    let home_icon_dir = home_dir().expect("No $HOME directory").join(".icons");
+    let home_icon_dir: PathBuf = home_dir().expect("No $HOME directory").join(".icons");
     let mut data_dirs: Vec<_> = BaseDirectories::new()
         .map(|bd| {
             bd.get_data_dirs()
                 .into_iter()
+                .chain(dirs::home_dir().into_iter().map(|d| d.join(".local/share"))) // $HOME/.local/share
+                .chain(PathBuf::from_str("/usr/share").into_iter()) // /usr/share
+                .chain(PathBuf::from_str("/usr/local/share").into_iter()) // /usr/local/share
                 .map(|p| p.join("icons"))
+                .unique()
                 .collect()
         })
         .unwrap_or_default();
+
     data_dirs.push(home_icon_dir);
     data_dirs.into_iter().filter(|p| p.exists()).collect()
 }
