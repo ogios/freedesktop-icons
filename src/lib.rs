@@ -93,6 +93,7 @@ pub fn list_themes() -> Vec<&'static str> {
 pub struct LookupBuilder<'a> {
     name: &'a str,
     cache: bool,
+    greedy: bool,
     force_svg: bool,
     scale: u16,
     size: u16,
@@ -180,6 +181,25 @@ impl<'a> LookupBuilder<'a> {
         self
     }
 
+    /// Let the serach be greedy.
+    /// Use this if you need to search icons in themes that don't respect
+    /// the freedesktop standard
+    ///
+    /// This is slow and should be used as a last resort.
+    /// ## Example
+    /// ```rust
+    /// # fn main() {
+    /// use freedesktop_icons::lookup;
+    ///
+    /// let icon = lookup("firefox")
+    ///     .with_greed()
+    ///     .find();
+    /// # }
+    pub fn with_greed(mut self) -> Self {
+        self.greedy = true;
+        self
+    }
+
     /// By default [`find`] will prioritize Png over Svg icon.
     /// Use this if you need to prioritize Svg icons. This could be useful
     /// if you need a modifiable icon, to match a user theme for instance.
@@ -210,6 +230,7 @@ impl<'a> LookupBuilder<'a> {
         Self {
             name,
             cache: false,
+            greedy: false,
             force_svg: false,
             scale: 1,
             size: 24,
@@ -256,17 +277,6 @@ impl<'a> LookupBuilder<'a> {
                         })
                     })
                 })
-                .or_else(|| {
-                    for theme_base_dir in BASE_PATHS.iter() {
-                        let theme = Theme::from_path(theme_base_dir.join("hicolor"));
-                        if let Some(icon) = theme.and_then(|theme| {
-                            theme.try_get_icon(self.name, self.size, self.scale, self.force_svg)
-                        }) {
-                            return Some(icon);
-                        }
-                    }
-                    None
-                })
                 .or_else(|| try_build_icon_path(self.name, "/usr/share/pixmaps", self.force_svg))
                 .or_else(|| {
                     let p = PathBuf::from(&self.name);
@@ -275,6 +285,33 @@ impl<'a> LookupBuilder<'a> {
                     } else {
                         None
                     }
+                })
+                .or_else(|| {
+                    let mut non_standard_theme_dirs: Vec<&PathBuf> = vec![];
+
+                    for theme_base_dir in BASE_PATHS.iter() {
+                        let theme = Theme::from_path(theme_base_dir.join("hicolor"), false);
+                        if theme.is_none() {
+                            non_standard_theme_dirs.push(theme_base_dir);
+                        }
+                        if let Some(icon) = theme.and_then(|theme| {
+                            theme.try_get_icon(self.name, self.size, self.scale, self.force_svg)
+                        }) {
+                            return Some(icon);
+                        }
+                    }
+
+                    if self.greedy {
+                        for theme_base_dir in non_standard_theme_dirs {
+                            let theme = Theme::from_path(theme_base_dir.join("hicolor"), true);
+                            if let Some(icon) = theme.and_then(|theme| {
+                                theme.try_get_icon(self.name, self.size, self.scale, self.force_svg)
+                            }) {
+                                return Some(icon);
+                            }
+                        }
+                    }
+                    None
                 });
 
             if self.cache {

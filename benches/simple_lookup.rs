@@ -2,7 +2,7 @@ use criterion::{
     black_box, criterion_group, criterion_main, AxisScale, BenchmarkId, Criterion,
     PlotConfiguration,
 };
-use freedesktop_icons::lookup;
+use freedesktop_icons_greedy::lookup;
 use gtk4::{IconLookupFlags, IconTheme, TextDirection};
 
 pub fn bench_lookups(c: &mut Criterion) {

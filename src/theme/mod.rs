@@ -15,7 +15,7 @@ mod paths;
 type Result<T> = std::result::Result<T, ThemeError>;
 
 pub static THEMES: Lazy<BTreeMap<String, Vec<Theme>>> =
-    Lazy::new(|| get_all_themes().expect("Failed to get theme paths"));
+    Lazy::new(|| get_all_themes(false).expect("Failed to get theme paths"));
 
 pub struct Theme {
     pub path: ThemePath,
@@ -48,9 +48,13 @@ impl Theme {
     fn match_size(&self, size: u16, scale: u16) -> impl Iterator<Item = PathBuf> + '_ {
         let dirs = self.get_all_directories();
 
-        dirs.filter(move |directory| directory.match_size(size, scale))
+        let paths = dirs
+            .filter(move |directory| directory.match_size(size, scale))
             .map(|dir| dir.name)
-            .map(|dir| self.path().join(dir))
+            .map(|dir| self.path().join(dir));
+        let p = paths.collect::<Vec<PathBuf>>();
+        //dbg!(&p);
+        p.into_iter()
     }
 
     fn try_get_icon_closest_size(
@@ -140,12 +144,12 @@ fn try_build_xmp<P: AsRef<Path>>(name: &str, path: P) -> Option<PathBuf> {
 }
 
 // Iter through the base paths and get all theme directories
-pub(super) fn get_all_themes() -> Result<BTreeMap<String, Vec<Theme>>> {
+pub(super) fn get_all_themes(greedy: bool) -> Result<BTreeMap<String, Vec<Theme>>> {
     let mut icon_themes = BTreeMap::<_, Vec<_>>::new();
     for theme_base_dir in BASE_PATHS.iter() {
         for entry in theme_base_dir.read_dir()? {
             let entry = entry?;
-            if let Some(theme) = Theme::from_path(entry.path()) {
+            if let Some(theme) = Theme::from_path(entry.path(), greedy) {
                 let name = entry.file_name().to_string_lossy().to_string();
                 icon_themes.entry(name).or_default().push(theme);
             }
@@ -155,18 +159,18 @@ pub(super) fn get_all_themes() -> Result<BTreeMap<String, Vec<Theme>>> {
 }
 
 impl Theme {
-    pub(crate) fn from_path<P: AsRef<Path>>(path: P) -> Option<Self> {
+    pub(crate) fn from_path<P: AsRef<Path>>(path: P, greedy: bool) -> Option<Self> {
         let path = path.as_ref();
 
-        let has_index = path.join("index.theme").exists();
+        //let has_index = path.join("index.theme").exists();
 
-        if !has_index || !path.is_dir() {
+        if !path.is_dir() {
             return None;
         }
 
         let path = ThemePath(path.into());
 
-        match path.index() {
+        match path.index(greedy) {
             Ok(index) => Some(Theme { path, index }),
             Err(_) => None,
         }
