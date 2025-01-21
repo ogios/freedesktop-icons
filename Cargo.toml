@@ -1,5 +1,5 @@
 [package]
-name = "cosmic-freedesktop-icons"
+name = "freedesktop-icons"
 version = "0.2.6"
 edition = "2021"
 

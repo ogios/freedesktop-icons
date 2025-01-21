@@ -1,6 +1,6 @@
- # cosmic-freedesktop-icons
-![crates.io-badge](https://img.shields.io/crates/v/cosmic-freedesktop-icons)
-![docrs-badge](https://img.shields.io/docsrs/cosmic-freedesktop-icons)
+ # freedesktop-icons
+![crates.io-badge](https://img.shields.io/crates/v/freedesktop-icons)
+![docrs-badge](https://img.shields.io/docsrs/freedesktop-icons)
 
 
  This crate provides a [freedesktop icon](https://specifications.freedesktop.org/icon-theme-spec/icon-theme-spec-latest.html#implementation_notes) lookup implementation.
@@ -15,7 +15,7 @@
  with the default scale (`1`) and the default size (`24`).
 
  ```rust
- use cosmic_freedesktop_icons::lookup;
+ use freedesktop_icons::lookup;
 
  let icon = lookup("firefox").find();
 ```
@@ -25,7 +25,7 @@
  If you have specific requirements for your lookup you can use the provided builder functions:
 
  ```rust
- use cosmic_freedesktop_icons::lookup;
+ use freedesktop_icons::lookup;
 
  let icon = lookup("firefox")
      .with_size(48)
@@ -39,7 +39,7 @@
  you can use the internal cache to improve performance.
 
  ```rust
- use cosmic_freedesktop_icons::lookup;
+ use freedesktop_icons::lookup;
 
  let icon = lookup("firefox")
      .with_size(48)
