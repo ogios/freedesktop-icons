@@ -109,6 +109,14 @@ pub fn list_themes() -> Vec<String> {
     themes
 }
 
+#[derive(Default, Clone, Copy)]
+pub enum SizeScheme {
+    #[default]
+    Closest,
+    Bigger,
+    Smaller,
+}
+
 /// The lookup builder struct, holding all the lookup query parameters.
 pub struct LookupBuilder<'a> {
     name: &'a str,
@@ -116,6 +124,7 @@ pub struct LookupBuilder<'a> {
     force_svg: bool,
     scale: u16,
     size: u16,
+    size_scheme: SizeScheme,
     theme: &'a str,
 }
 
@@ -146,6 +155,11 @@ impl<'a> LookupBuilder<'a> {
     /// # }
     pub fn with_size(mut self, size: u16) -> Self {
         self.size = size;
+        self
+    }
+
+    pub fn with_size_scheme(mut self, scheme: SizeScheme) -> Self {
+        self.size_scheme = scheme;
         self
     }
 
@@ -234,6 +248,7 @@ impl<'a> LookupBuilder<'a> {
             scale: 1,
             size: 24,
             theme: "hicolor",
+            size_scheme: SizeScheme::default(),
         }
     }
 
@@ -256,7 +271,13 @@ impl<'a> LookupBuilder<'a> {
                 let icon = icon_themes
                     .iter()
                     .find_map(|theme| {
-                        theme.try_get_icon(self.name, self.size, self.scale, self.force_svg)
+                        theme.try_get_icon(
+                            self.name,
+                            self.size,
+                            self.size_scheme,
+                            self.scale,
+                            self.force_svg,
+                        )
                     })
                     .or_else(|| {
                         // Fallback to the parent themes recursively
@@ -275,15 +296,27 @@ impl<'a> LookupBuilder<'a> {
                         parents.into_iter().find_map(|parent| {
                             THEMES.get(&parent).and_then(|parent| {
                                 parent.iter().find_map(|t| {
-                                    t.try_get_icon(self.name, self.size, self.scale, self.force_svg)
+                                    t.try_get_icon(
+                                        self.name,
+                                        self.size,
+                                        self.size_scheme,
+                                        self.scale,
+                                        self.force_svg,
+                                    )
                                 })
                             })
                         })
                     })
                     .or_else(|| {
                         THEMES.get("hicolor").and_then(|icon_themes| {
-                            icon_themes.iter().find_map(|theme| {
-                                theme.try_get_icon(self.name, self.size, self.scale, self.force_svg)
+                            icon_themes.iter().find_map(|t| {
+                                t.try_get_icon(
+                                    self.name,
+                                    self.size,
+                                    self.size_scheme,
+                                    self.scale,
+                                    self.force_svg,
+                                )
                             })
                         })
                     })

@@ -4,6 +4,8 @@ use std::sync::LazyLock;
 
 use crate::theme::error::ThemeError;
 use crate::theme::paths::ThemePath;
+use crate::SizeScheme;
+use directories::DirectoryType;
 pub(crate) use paths::BASE_PATHS;
 
 mod directories;
@@ -30,12 +32,22 @@ impl Theme {
         &self,
         name: &str,
         size: u16,
+        size_scheme: SizeScheme,
         scale: u16,
         force_svg: bool,
     ) -> Option<PathBuf> {
         let file = read_ini_theme(&self.index);
         self.try_get_icon_exact_size(file.as_str(), name, size, scale, force_svg)
-            .or_else(|| self.try_get_icon_closest_size(file.as_str(), name, size, scale, force_svg))
+            .or_else(|| {
+                self.try_get_icon_closest_size(
+                    file.as_str(),
+                    name,
+                    size,
+                    size_scheme,
+                    scale,
+                    force_svg,
+                )
+            })
     }
 
     fn try_get_icon_exact_size(
@@ -68,24 +80,48 @@ impl Theme {
         file: &str,
         name: &str,
         size: u16,
+        size_scheme: SizeScheme,
         scale: u16,
         force_svg: bool,
     ) -> Option<PathBuf> {
-        self.closest_match_size(file, size, scale)
+        self.closest_match_size(file, size, size_scheme, scale)
             .iter()
             .find_map(|path| try_build_icon_path(name, path, force_svg))
     }
 
-    fn closest_match_size(&self, file: &str, size: u16, scale: u16) -> Vec<PathBuf> {
+    fn closest_match_size(
+        &self,
+        file: &str,
+        size: u16,
+        size_scheme: SizeScheme,
+        scale: u16,
+    ) -> Vec<PathBuf> {
         let dirs = self.get_all_directories(file);
 
         let mut dirs: Vec<_> = dirs
             .filter_map(|directory| {
                 let distance = directory.directory_size_distance(size, scale);
-                if distance < i16::MAX {
-                    Some((directory, distance.abs()))
-                } else {
-                    None
+                if let DirectoryType::Fixed = directory.type_ {
+                    if directory.scale != scale as i16 {
+                        return None;
+                    }
+                }
+                match size_scheme {
+                    SizeScheme::Closest => Some((directory, distance.abs())),
+                    SizeScheme::Bigger => {
+                        if distance.is_negative() {
+                            None
+                        } else {
+                            Some((directory, distance))
+                        }
+                    }
+                    SizeScheme::Smaller => {
+                        if distance.is_negative() {
+                            Some((directory, distance.abs()))
+                        } else {
+                            None
+                        }
+                    }
                 }
             })
             .collect();
