@@ -61,6 +61,11 @@ use std::path::PathBuf;
 mod cache;
 mod theme;
 
+/// list the keys which can be used as input
+pub fn list_theme_keys() -> Vec<&'static str> {
+    THEMES.keys().map(String::as_str).collect()
+}
+
 /// Return the list of installed themes on the system
 ///
 /// ## Example
