@@ -111,10 +111,13 @@ pub fn list_themes() -> Vec<String> {
 
 #[derive(Default, Clone, Copy)]
 pub enum SizeScheme {
+    /// always get the closest one
     #[default]
     Closest,
-    Bigger,
-    Smaller,
+    /// always get the larger one
+    LargerClosest,
+    /// always get the smaller one
+    SmallerClosest,
 }
 
 /// The lookup builder struct, holding all the lookup query parameters.

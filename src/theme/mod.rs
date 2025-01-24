@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
@@ -106,27 +107,27 @@ impl Theme {
                         return None;
                     }
                 }
-                match size_scheme {
-                    SizeScheme::Closest => Some((directory, distance.abs())),
-                    SizeScheme::Bigger => {
-                        if distance.is_negative() {
-                            None
-                        } else {
-                            Some((directory, distance))
-                        }
-                    }
-                    SizeScheme::Smaller => {
-                        if distance.is_negative() {
-                            Some((directory, distance.abs()))
-                        } else {
-                            None
-                        }
-                    }
-                }
+                Some((directory, distance))
             })
             .collect();
 
-        dirs.sort_by(|(_, a), (_, b)| a.cmp(b));
+        dirs.sort_by(|(_, a), (_, b)| match size_scheme {
+            SizeScheme::Closest => a.abs().cmp(&b.abs()),
+            SizeScheme::LargerClosest => match (*a > 0, *b > 0) {
+                (true, true) => a.abs().cmp(&b.abs()),
+                (true, false) => Ordering::Less,
+                (false, true) => Ordering::Greater,
+                (false, false) => a.abs().cmp(&b.abs()),
+            },
+            SizeScheme::SmallerClosest => match (*a < 0, *b < 0) {
+                (true, true) => a.abs().cmp(&b.abs()),
+                (true, false) => Ordering::Less,
+                (false, true) => Ordering::Greater,
+                (false, false) => a.abs().cmp(&b.abs()),
+            },
+        });
+
+        // dirs.sort_by(|(_, a), (_, b)| a.cmp(b));
 
         dirs.iter()
             .map(|(dir, _)| dir)
